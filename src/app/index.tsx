@@ -1,98 +1,334 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  ScrollView,
+} from 'react-native';
+import { router } from 'expo-router';
+import { useMenu } from './_layout';
 
 export default function HomeScreen() {
+  const { menuItems } = useMenu();
+
+  const [search, setSearch] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('All courses');
+  const [showCourses, setShowCourses] = useState(false);
+
+  const filteredItems = useMemo(() => {
+    return menuItems.filter((item) => {
+      const matchesSearch =
+        item.dishName
+          .toLowerCase()
+          .includes(search.toLowerCase());
+
+      const matchesCourse =
+        selectedCourse === 'All courses' ||
+        item.course === selectedCourse;
+
+      return matchesSearch && matchesCourse;
+    });
+  }, [menuItems, search, selectedCourse]);
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+        <Text style={styles.title}>
+          Chef's Menu
+        </Text>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+        <Text style={styles.subtitle}>
+          Manage dishes quickly from your phone
+        </Text>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+        <Pressable
+          style={styles.addButton}
+          onPress={() => router.push('/addmenuitems')}
+        >
+          <Text style={styles.plus}>+</Text>
+          <Text style={styles.addButtonText}>
+            Add Menu Item
+          </Text>
+        </Pressable>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search menu items"
+          placeholderTextColor="#999999"
+          value={search}
+          onChangeText={setSearch}
+        />
+
+        <Text style={styles.filterLabel}>
+          Course filter
+        </Text>
+
+        <Pressable
+          style={styles.dropdown}
+          onPress={() => setShowCourses(!showCourses)}
+        >
+          <Text style={styles.dropdownText}>
+            {selectedCourse}
+          </Text>
+
+          <Text style={styles.arrow}>
+            {showCourses ? '⌃' : '⌄'}
+          </Text>
+        </Pressable>
+
+        {showCourses && (
+          <View style={styles.courseList}>
+
+            {[
+              'All courses',
+              'Starter',
+              'Main Course',
+              'Dessert',
+            ].map((course) => (
+              <Pressable
+                key={course}
+                style={styles.courseOption}
+                onPress={() => {
+                  setSelectedCourse(course);
+                  setShowCourses(false);
+                }}
+              >
+                <Text style={styles.courseOptionText}>
+                  {course}
+                </Text>
+              </Pressable>
+            ))}
+
+          </View>
+        )}
+
+        <Text style={styles.menuTitle}>
+          Menu items
+        </Text>
+
+        {filteredItems.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>
+              No menu items
+            </Text>
+
+            <Text style={styles.emptyText}>
+              No menu items have been added yet.
+            </Text>
+          </View>
+        ) : (
+          filteredItems.map((item) => (
+            <Pressable
+              key={item.id}
+              style={styles.menuCard}
+              onPress={() =>
+                router.push({
+                  pathname: '/aditmenu',
+                  params: { id: item.id },
+                })
+              }
+            >
+
+              <View style={styles.itemInfo}>
+
+                <Text style={styles.dishName}>
+                  {item.dishName}
+                </Text>
+
+                <Text style={styles.course}>
+                  {item.course}
+                </Text>
+
+                <Text style={styles.description}>
+                  {item.description}
+                </Text>
+
+              </View>
+
+              <Text style={styles.price}>
+                R{item.price}
+              </Text>
+
+            </Pressable>
+          ))
+        )}
+
+        <View style={styles.bottomSpace} />
+
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
+
   title: {
-    textAlign: 'center',
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#62658F',
+    marginTop: 35,
   },
-  code: {
-    textTransform: 'uppercase',
+
+  subtitle: {
+    fontSize: 15,
+    color: '#8B8DA8',
+    marginTop: 5,
+    marginBottom: 28,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+
+  addButton: {
+    height: 56,
+    backgroundColor: '#756FE8',
+    borderRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 25,
+    marginBottom: 20,
+  },
+
+  plus: {
+    color: '#FFFFFF',
+    fontSize: 23,
+    marginRight: 8,
+  },
+
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  searchInput: {
+    height: 52,
+    backgroundColor: '#F8F8FB',
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    fontSize: 14,
+    color: '#444444',
+    marginBottom: 20,
+  },
+
+  filterLabel: {
+    fontSize: 13,
+    color: '#8B8DA8',
+    marginBottom: 7,
+  },
+
+  dropdown: {
+    height: 52,
+    backgroundColor: '#F8F8FB',
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  dropdownText: {
+    fontSize: 14,
+    color: '#777990',
+  },
+
+  arrow: {
+    fontSize: 20,
+    color: '#777990',
+  },
+
+  courseList: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EEEEF5',
+    borderRadius: 8,
+    marginTop: 4,
+  },
+
+  courseOption: {
+    padding: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEF5',
+  },
+
+  courseOptionText: {
+    color: '#66687F',
+    fontSize: 14,
+  },
+
+  menuTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#62658F',
+    marginTop: 25,
+    marginBottom: 15,
+  },
+
+  menuCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 8,
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  itemInfo: {
+    flex: 1,
+  },
+
+  dishName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#777990',
+  },
+
+  course: {
+    fontSize: 12,
+    color: '#7777C8',
+    marginTop: 5,
+  },
+
+  description: {
+    fontSize: 13,
+    color: '#A0A0AC',
+    marginTop: 8,
+  },
+
+  price: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#777990',
+    marginRight: 15,
+  },
+
+  emptyBox: {
+    padding: 25,
+    backgroundColor: '#F8F8FB',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#62658F',
+  },
+
+  emptyText: {
+    color: '#999999',
+    marginTop: 6,
+  },
+
+  bottomSpace: {
+    height: 40,
   },
 });
