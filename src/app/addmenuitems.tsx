@@ -20,6 +20,7 @@ export default function AddMenuItemScreen() {
   const [price, setPrice] = useState('');
   const [showCourses, setShowCourses] = useState(false);
 
+  // Save menu item with validation
   const saveMenuItem = () => {
     if (
       dishName.trim() === '' ||
@@ -34,12 +35,22 @@ export default function AddMenuItemScreen() {
       return;
     }
 
+    const numericPrice = Number(price);
+
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      Alert.alert(
+        'Invalid Price',
+        'Please enter a valid price greater than R0.'
+      );
+      return;
+    }
+
     addMenuItem({
       id: Date.now().toString(),
       dishName: dishName.trim(),
       description: description.trim(),
       course: course,
-      price: price.trim(),
+      price: numericPrice.toFixed(2),
     });
 
     Alert.alert(
@@ -90,6 +101,7 @@ export default function AddMenuItemScreen() {
         placeholderTextColor="#999999"
         value={description}
         onChangeText={setDescription}
+        multiline
       />
 
       <Text style={styles.label}>
@@ -138,11 +150,15 @@ export default function AddMenuItemScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="R85"
+        placeholder="R85.00"
         placeholderTextColor="#999999"
-        keyboardType="numeric"
+        keyboardType="decimal-pad"
         value={price}
-        onChangeText={setPrice}
+        onChangeText={(text) => {
+          if (/^\d*\.?\d{0,2}$/.test(text)) {
+            setPrice(text);
+          }
+        }}
       />
 
       <Pressable
@@ -199,10 +215,11 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    height: 54,
+    minHeight: 54,
     backgroundColor: '#F8F8FB',
     borderRadius: 8,
     paddingHorizontal: 18,
+    paddingVertical: 14,
     fontSize: 14,
     color: '#555555',
     marginBottom: 23,

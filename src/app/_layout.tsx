@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+} from 'react';
+
 import { Stack } from 'expo-router';
 
 export type MenuItem = {
@@ -16,19 +23,29 @@ type MenuContextType = {
   deleteMenuItem: (id: string) => void;
 };
 
-const MenuContext = createContext<MenuContextType | undefined>(undefined);
+const MenuContext = createContext<MenuContextType | undefined>(
+  undefined
+);
 
+// Custom hook to access menu data
 export function useMenu() {
   const context = useContext(MenuContext);
 
   if (!context) {
-    throw new Error('useMenu must be used inside MenuProvider');
+    throw new Error(
+      'useMenu must be used inside MenuProvider'
+    );
   }
 
   return context;
 }
 
-export default function RootLayout() {
+// Menu Provider
+function MenuProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
     {
       id: '1',
@@ -46,33 +63,53 @@ export default function RootLayout() {
     },
   ]);
 
-  const addMenuItem = (item: MenuItem) => {
+  // Add menu item
+  const addMenuItem = useCallback((item: MenuItem) => {
     setMenuItems((current) => [...current, item]);
-  };
+  }, []);
 
-  const updateMenuItem = (item: MenuItem) => {
+  // Update menu item
+  const updateMenuItem = useCallback((item: MenuItem) => {
     setMenuItems((current) =>
       current.map((oldItem) =>
         oldItem.id === item.id ? item : oldItem
       )
     );
-  };
+  }, []);
 
-  const deleteMenuItem = (id: string) => {
+  // Delete menu item
+  const deleteMenuItem = useCallback((id: string) => {
     setMenuItems((current) =>
       current.filter((item) => item.id !== id)
     );
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      menuItems,
+      addMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
+    }),
+    [
+      menuItems,
+      addMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
+    ]
+  );
 
   return (
-    <MenuContext.Provider
-      value={{
-        menuItems,
-        addMenuItem,
-        updateMenuItem,
-        deleteMenuItem,
-      }}
-    >
+    <MenuContext.Provider value={value}>
+      {children}
+    </MenuContext.Provider>
+  );
+}
+
+// Main Application Layout
+export default function RootLayout() {
+  return (
+    <MenuProvider>
       <Stack>
         <Stack.Screen
           name="index"
@@ -102,6 +139,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </MenuContext.Provider>
+    </MenuProvider>
   );
 }

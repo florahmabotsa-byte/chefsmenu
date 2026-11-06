@@ -37,7 +37,7 @@ export default function EditMenuItemScreen() {
   );
 
   const [price, setPrice] = useState(
-    item?.price || ''
+    String(item?.price || '')
   );
 
   const [showCourses, setShowCourses] = useState(false);
@@ -66,11 +66,13 @@ export default function EditMenuItemScreen() {
       dishName.trim() === '' ||
       description.trim() === '' ||
       course.trim() === '' ||
-      price.trim() === ''
+      price.trim() === '' ||
+      isNaN(Number(price)) ||
+      Number(price) <= 0
     ) {
       Alert.alert(
         'Error',
-        'Please complete all required fields.'
+        'Please enter valid information and a price greater than zero.'
       );
       return;
     }
@@ -121,7 +123,6 @@ export default function EditMenuItemScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
-
       <Text style={styles.title}>
         Edit Menu Item
       </Text>
@@ -137,6 +138,7 @@ export default function EditMenuItemScreen() {
       <TextInput
         style={styles.input}
         value={dishName}
+        placeholder="Enter dish name"
         onChangeText={setDishName}
       />
 
@@ -147,6 +149,7 @@ export default function EditMenuItemScreen() {
       <TextInput
         style={styles.input}
         value={description}
+        placeholder="Enter description"
         onChangeText={setDescription}
       />
 
@@ -191,20 +194,18 @@ export default function EditMenuItemScreen() {
       )}
 
       <Text style={styles.label}>
-        Price
+        Price (R)
       </Text>
 
       <TextInput
         style={styles.input}
-        value={`R${price}`}
-        keyboardType="numeric"
-        onChangeText={(text) =>
-          setPrice(text.replace('R', ''))
-        }
+        value={price}
+        placeholder="Enter price"
+        keyboardType="decimal-pad"
+        onChangeText={setPrice}
       />
 
       <View style={styles.buttonRow}>
-
         <Pressable
           style={styles.updateButton}
           onPress={updateItem}
@@ -222,9 +223,7 @@ export default function EditMenuItemScreen() {
             Delete Item
           </Text>
         </Pressable>
-
       </View>
-
     </ScrollView>
   );
 }
